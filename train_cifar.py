@@ -4,6 +4,7 @@ import torchvision
 import torchvision.transforms as transforms
 import torch.optim as optim
 import argparse
+import tqdm
 
 def load_train_test(args):
     transform = transforms.Compose(
@@ -27,7 +28,8 @@ def load_train_test(args):
 
 def train(epoch, trainloader, net, criterion, optimizer, args):
     running_loss = 0.0
-    for i, data in enumerate(trainloader, 0):
+    pbar = tqdm.tqdm(enumerate(trainloader, 0))
+    for i, data in pbar:
         # get the inputs
         inputs, labels = data
         if args.cuda:
@@ -46,7 +48,7 @@ def train(epoch, trainloader, net, criterion, optimizer, args):
         # print statistics
         running_loss += loss.item()
         if i % args.log_interval == args.log_interval - 1:    # print every 2000 mini-batches
-            print('[%d, %5d] loss: %.3f' %
+            pbar.set_description('[%d, %5d] loss: %.3f' %
                   (epoch + 1, i + 1, running_loss / args.log_interval))
             running_loss = 0.0
 
@@ -56,7 +58,7 @@ def test(testloader, net, args):
     with torch.no_grad():
         for data in testloader:
             images, labels = data
-            if arg.cuda:
+            if args.cuda:
                 images = images.cuda()
                 labels = labels.cuda()
 
@@ -125,7 +127,8 @@ def main():
     trainloader, testloader = load_train_test(args)
     net = resnet18()
     if args.cuda:
-        net.cuda()
+        #net.cuda()
+        net = torch.nn.DataParallel(net).cuda()
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
     epoch = 0
