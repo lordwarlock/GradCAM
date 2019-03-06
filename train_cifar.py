@@ -94,26 +94,30 @@ def test_class_perf(testloader, net, args):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N', 
+    parser.add_argument('--batch-size', type=int, default=192, metavar='N', 
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                        help='number of epochs to train (default: 10)')
-    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
-                        help='learning rate (default: 0.01)')
-    parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
-                        help='SGD momentum (default: 0.5)')
+    parser.add_argument('--epochs', type=int, default=300, metavar='N',
+                        help='number of epochs to train (default: 300)')
+    parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
+                        help='learning rate (default: 0.1)')
+    parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
+                        help='SGD momentum (default: 0.9)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
     parser.add_argument('--seed', type=int, default=1234, metavar='S',
                         help='random seed (default: 1234)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
+    parser.add_argument('--log-interval', type=int, default=100, metavar='N',
                         help='how many batches to wait before logging training status')
     parser.add_argument('--weight-decay', type=float, default=0., metavar='WD',
                         help='weigth decay')
-    parser.add_argument('--lr-decay-epoch', type=int, default=1, metavar='LDE',
+    parser.add_argument('--lr-decay-epoch', type=int, default=100, metavar='LDE',
                         help='number of epochs to decay lr')
+    parser.add_argument('--save-path', type=str, default='',
+                        help='save model to path')
+    parser.add_argument('--load-path', type=str, default='',
+                        help='load model from path')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -132,6 +136,14 @@ def main():
     args = parse_args()
     trainloader, testloader = load_train_test(args)
     net = resnet18()
+
+    if args.load_path != '':
+        net.load_state_dict(torch.load(args.load_path))
+        if args.cuda:
+            net = torch.nn.DataParallel(net).cuda()
+        test(testloader, net, args)
+        return
+
     if args.cuda:
         #net.cuda()
         net = torch.nn.DataParallel(net).cuda()
@@ -142,6 +154,8 @@ def main():
         adjust_learning_rate(optimizer, epoch, args)
         train(epoch, trainloader, net, criterion, optimizer, args)
         test(testloader, net, args)
+        if args.save_path != '':
+            torch.save(net.module.state_dict(), args.save_path)
 
 if __name__ == '__main__':
     main()
