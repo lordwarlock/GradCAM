@@ -122,6 +122,12 @@ def parse_args():
         torch.cuda.manual_seed(args.seed)
     return args
 
+def adjust_learning_rate(optimizer, epoch, args):
+    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
+    lr = args.lr * (0.1 ** (epoch // args.lr_decay_epoch))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
 def main():
     args = parse_args()
     trainloader, testloader = load_train_test(args)
@@ -132,8 +138,10 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
     epoch = 0
-    train(epoch, trainloader, net, criterion, optimizer, args)
-    test(testloader, net, args)
+    for i in range(epoch):
+        adjust_learning_rate(optimizer, epoch, args)
+        train(epoch, trainloader, net, criterion, optimizer, args)
+        test(testloader, net, args)
 
 if __name__ == '__main__':
     main()
