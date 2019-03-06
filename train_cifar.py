@@ -138,7 +138,7 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
     epoch = 0
-    for i in range(epoch):
+    for i in range(args.epochs):
         adjust_learning_rate(optimizer, epoch, args)
         train(epoch, trainloader, net, criterion, optimizer, args)
         test(testloader, net, args)
