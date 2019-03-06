@@ -31,8 +31,8 @@ def train(epoch, trainloader, net, criterion, optimizer, args):
         # get the inputs
         inputs, labels = data
         if args.cuda:
-            inputs.cuda()
-            labels.cuda()
+            inputs = inputs.cuda()
+            labels = labels.cuda()
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -57,8 +57,8 @@ def test(testloader, net, args):
         for data in testloader:
             images, labels = data
             if arg.cuda:
-                images.cuda()
-                labels.cuda()
+                images = images.cuda()
+                labels = labels.cuda()
 
             outputs = net(images)
             _, predicted = torch.max(outputs.data, 1)
@@ -75,8 +75,8 @@ def test_class_perf(testloader, net, args):
         for data in testloader:
             images, labels = data
             if args.cuda:
-                images.cuda()
-                labels.cuda()
+                images = images.cuda()
+                labels = labels.cuda()
             outputs = net(images)
             _, predicted = torch.max(outputs, 1)
             c = (predicted == labels).squeeze()
