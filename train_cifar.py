@@ -31,7 +31,7 @@ def train(epoch, trainloader, net, criterion, optimizer, args):
         # get the inputs
         inputs, labels = data
         if args.cuda:
-            input.cuda()
+            inputs.cuda()
             labels.cuda()
 
         # zero the parameter gradients
