@@ -129,8 +129,8 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
     epoch = 0
-    train(epoch, trainloader, net, criterion, optimizer)
-    test(testloader, net)
+    train(epoch, trainloader, net, criterion, optimizer, args)
+    test(testloader, net, args)
 
 if __name__ == '__main__':
     main()
