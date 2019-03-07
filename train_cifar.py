@@ -142,7 +142,7 @@ def adjust_learning_rate(optimizer, epoch, args):
 def main():
     args = parse_args()
     trainloader, testloader = load_train_test(args)
-    net = resnet50()
+    net = resnet50(num_classes=10)
 
     if args.load_path != '':
         net.load_state_dict(torch.load(args.load_path))
