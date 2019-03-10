@@ -32,9 +32,9 @@ def load_train_test(args):
 
     return trainloader, testloader
 
-def train(epoch, trainloader, net, criterion, optimizer, args, lr):
+def grad_cam(dataloader, net, args):
     running_loss = 0.0
-    pbar = tqdm.tqdm(enumerate(trainloader, 0))
+    pbar = tqdm.tqdm(enumerate(dataloader, 0))
     for i, data in pbar:
         # get the inputs
         inputs, labels = data
@@ -49,55 +49,7 @@ def train(epoch, trainloader, net, criterion, optimizer, args, lr):
         outputs = net(inputs)
         loss = criterion(outputs, labels)
         loss.backward()
-        optimizer.step()
-
-        # print statistics
-        running_loss += loss.item()
-        if i % args.log_interval == args.log_interval - 1:    # print every 2000 mini-batches
-            pbar.set_description('[%d, %5d, %.3f] loss: %.3f' %
-                  (epoch + 1, i + 1, lr, running_loss / args.log_interval))
-            running_loss = 0.0
-
-def test(testloader, net, args):
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for data in testloader:
-            images, labels = data
-            if args.cuda:
-                images = images.cuda()
-                images.requires_grad_()
-                labels = labels.cuda()
-
-            outputs = net(images)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-    print('Accuracy of the network on the 10000 test images: %d %%' % (
-        100 * correct / total))
-
-def test_class_perf(testloader, net, args):
-    class_correct = list(0. for i in range(10))
-    class_total = list(0. for i in range(10))
-    with torch.no_grad():
-        for data in testloader:
-            images, labels = data
-            if args.cuda:
-                images = images.cuda()
-                labels = labels.cuda()
-            outputs = net(images)
-            _, predicted = torch.max(outputs, 1)
-            c = (predicted == labels).squeeze()
-            for i in range(4):
-                label = labels[i]
-                class_correct[label] += c[i].item()
-                class_total[label] += 1 
-    
-
-    for i in range(10):
-        print('Accuracy of %5s : %2d %%' % (
-            classes[i], 100 * class_correct[i] / class_total[i]))
+        break
 
 def parse_args():
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10')
