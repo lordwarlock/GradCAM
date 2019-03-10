@@ -85,6 +85,7 @@ class ResNet(nn.Module):
 
     def __init__(self, block, layers, num_classes=1000, zero_init_residual=False):
         super(ResNet, self).__init__()
+        self.gradient_cam = []
         self.inplanes = 64
         self.conv1 = nn.Conv2d(3, 64, kernel_size=(7 if num_classes > 100 else 3), stride=2, padding=3,
                                bias=False)
@@ -117,6 +118,9 @@ class ResNet(nn.Module):
                 elif isinstance(m, BasicBlock):
                     nn.init.constant_(m.bn2.weight, 0)
 
+    def save_gradient(self, grad):
+        self.gradient_cam.append(grad)
+
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
@@ -144,6 +148,8 @@ class ResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
+
+        x.register_hook(self.save_gradient)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
