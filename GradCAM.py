@@ -99,8 +99,12 @@ def main():
         if args.cuda:
             net = torch.nn.DataParallel(net).cuda()
         grad_cam(testloader, net, args, nn.CrossEntropyLoss())
-        print(net.module.gradient_cam[0].shape)
-        print(len(net.module.gradient_cam))
+        if args.cuda:
+            print(net.module.gradient_cam[0].shape)
+            print(len(net.module.gradient_cam))
+        else:
+            print(net.cam4[0].shape)
+            print(len(net.cam4))
         return
 
     if args.cuda:
