@@ -32,7 +32,7 @@ def load_train_test(args):
 
     return trainloader, testloader
 
-def grad_cam(dataloader, net, args):
+def grad_cam(dataloader, net, args, criterion):
     running_loss = 0.0
     pbar = tqdm.tqdm(enumerate(dataloader, 0))
     for i, data in pbar:
@@ -41,9 +41,6 @@ def grad_cam(dataloader, net, args):
         if args.cuda:
             inputs = inputs.cuda()
             labels = labels.cuda()
-
-        # zero the parameter gradients
-        optimizer.zero_grad()
 
         # forward + backward + optimize
         outputs = net(inputs)
@@ -101,7 +98,9 @@ def main():
         net.load_state_dict(torch.load(args.load_path))
         if args.cuda:
             net = torch.nn.DataParallel(net).cuda()
-        test(testloader, net, args)
+        grad_cam(testloader, net, args, nn.CrossEntropyLoss())
+        print(net.module.gradient_cam[0].shape)
+        print(len(net.module.gradient_cam))
         return
 
     if args.cuda:
