@@ -85,8 +85,10 @@ class ResNet(nn.Module):
 
     def __init__(self, block, layers, num_classes=1000, zero_init_residual=False):
         super(ResNet, self).__init__()
-        self.cam3 = []
-        self.cam4 = []
+        self.grad_cam3 = []
+        self.grad_cam4 = []
+        self.actv_cam3 = []
+        self.actv_cam4 = []
         self.inplanes = 64
         self.conv1 = nn.Conv2d(3, 64, kernel_size=(7 if num_classes > 100 else 3), stride=2, padding=3,
                                bias=False)
@@ -120,10 +122,10 @@ class ResNet(nn.Module):
                     nn.init.constant_(m.bn2.weight, 0)
 
     def save_gradient4(self, grad):
-        self.cam4.append(grad)
+        self.grad_cam4.append(grad)
 
     def save_gradient3(self, grad):
-        self.cam3.append(grad)
+        self.grad_cam3.append(grad)
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None
@@ -152,10 +154,12 @@ class ResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
 
+        self.actv_cam3.append(x)
         x.register_hook(self.save_gradient3)
 
         x = self.layer4(x)
 
+        self.actv_cam4.append(x)
         x.register_hook(self.save_gradient4)
 
         x = self.avgpool(x)

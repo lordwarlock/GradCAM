@@ -5,6 +5,8 @@ import torchvision.transforms as transforms
 import torch.optim as optim
 import argparse
 import tqdm
+import numpy as np
+import cv2
 
 def load_train_test(args):
     transform_train = transforms.Compose(
@@ -32,7 +34,15 @@ def load_train_test(args):
 
     return trainloader, testloader
 
-def grad_cam(dataloader, net, args, criterion):
+def show_cam_on_image(img, mask):
+    heatmap = cv2.applyColorMap(np.uint8(255*mask), cv2.COLORMAP_JET)
+    heatmap = np.float32(heatmap) / 255
+    cam = heatmap + np.float32(img)
+    cam = cam / np.max(cam)
+    cv2.imwrite("cam.jpg", np.uint8(255 * cam))
+    cv2.imwrite("img.jpg", np.uint8(255 * img))
+
+def grad_cam(dataloader, net, args, criterion, index=None):
     running_loss = 0.0
     pbar = tqdm.tqdm(enumerate(dataloader, 0))
     for i, data in pbar:
@@ -44,9 +54,42 @@ def grad_cam(dataloader, net, args, criterion):
 
         # forward + backward + optimize
         outputs = net(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        break
+
+        if index == None:
+            index = np.argmax(outputs.detach().numpy(), axis=1)
+
+        one_hot = np.zeros((outputs.shape), dtype=np.float32)
+        one_hot[0][index] = 1
+        one_hot = torch.from_numpy(one_hot)
+        one_hot.requires_grad_()
+        if args.cuda:
+            one_hot = torch.sum(one_hot.cuda() * outputs)
+        else:
+            one_hot = torch.sum(one_hot * outputs)
+        net.zero_grad()
+        one_hot.backward()
+        grads_val = net.grad_cam3[-1].detach().numpy()
+        target = net.actv_cam3[-1].detach().numpy()
+        
+        IMG_IDX = 1
+
+        target = target[IMG_IDX, :]
+        weights = np.mean(grads_val, axis=(2, 3))[IMG_IDX, :]
+        cam = np.zeros(target.shape[1:], dtype=np.float32)
+
+        for i, w in enumerate(weights):
+            cam += w * target[i, :, :]
+
+        cam = np.maximum(cam, 0)
+        cam = cv2.resize(cam, (32, 32))
+        cam = cam - np.min(cam)
+        cam = cam / np.max(cam)
+
+        img = inputs.detach().numpy()[IMG_IDX, :, :, :] * 0.2 + 0.48
+        img = np.transpose(img, (1, 2, 0))
+        print(index[IMG_IDX])
+        show_cam_on_image(img, cam)
+        return cam
 
 def parse_args():
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10')
@@ -95,16 +138,19 @@ def main():
     net = resnet50(num_classes=10)
 
     if args.load_path != '':
-        net.load_state_dict(torch.load(args.load_path))
+        if args.cuda:
+            net.load_state_dict(torch.load(args.load_path))
+        else:
+            net.load_state_dict(torch.load(args.load_path, map_location='cpu'))
         if args.cuda:
             net = torch.nn.DataParallel(net).cuda()
         grad_cam(testloader, net, args, nn.CrossEntropyLoss())
         if args.cuda:
-            print(net.module.gradient_cam[0].shape)
+            print(net.module.grad_cam4[0].shape)
             print(len(net.module.gradient_cam))
         else:
-            print(net.cam4[0].shape)
-            print(len(net.cam4))
+            print(net.grad_cam4[0].shape)
+            print(len(net.grad_cam4))
         return
 
     if args.cuda:
