@@ -66,6 +66,7 @@ def test(testloader, net, args):
             images, labels = data
             if args.cuda:
                 images = images.cuda()
+                images.requires_grad_()
                 labels = labels.cuda()
 
             outputs = net(images)
